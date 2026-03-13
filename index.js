@@ -1,19 +1,19 @@
-const { EasyBot } = require('easy-djs-bot');
+// Importando a classe da biblioteca instalada via GitHub
+import { EasyBot } from 'ndj-lib';
 
 const bot = new EasyBot({
-    token: 'process.env.DISCORD_TOKEN'
+    // Removi as aspas para que o Node leia a variável de ambiente do Render
+    token: process.env.DISCORD_TOKEN 
 });
 
-
-// Defina suas configurações globais aqui
+// Configurações globais
 bot.config = {
-    ownerId: '1448096319372656703', // Pegue seu ID no Discord (botão direito no seu perfil)
-    messagespam: 5,                   // Limite para o módulo de segurança
-    limitmessagespam: 15              // Tempo para o módulo de segurança
+    ownerId: '1448096319372656703', 
+    messagespam: 5,                   
+    limitmessagespam: 15              
 };
 
-
-
+// Carregamento dos módulos
 bot.useModule('dnt-teste');
 bot.useModule('dnt-economy');
 bot.useModule('dnt-ia');
@@ -22,8 +22,11 @@ bot.useModule('dnt-gt');
 bot.useModule('ndj-security');
 bot.useModule('dnt-conf');
 bot.useModule('Dnt-search');
-bot.useModule('dnt-conf');
 bot.useModule('dnt-embed');
-bot.start().catch(err => {
+
+// Inicialização com tratamento de erro
+bot.start().then(() => {
+    console.log("Bot online com sucesso!");
+}).catch(err => {
     console.error("Erro fatal no bot:", err);
 });
