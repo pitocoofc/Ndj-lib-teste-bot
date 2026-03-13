@@ -1,7 +1,7 @@
-const { Client, GatewayIntentBits, EmbedBuilder } = require('discord.js');
-const fetch = require('node-fetch');
+import { Client, GatewayIntentBits, EmbedBuilder } from 'discord.js';
+import fetch from 'node-fetch';
 
-class NdjLibrary {
+export class NdjLibrary {
     constructor(config) {
         this.token = config.token;
         this.user = config.githubUser || 'pitocoofc';
@@ -17,7 +17,6 @@ class NdjLibrary {
         });
     }
 
-    // NÍVEL 1: Busca o TXT no seu GitHub Raw
     async getInfo(tema) {
         const cleanKey = tema.toLowerCase().trim().replace(/\s+/g, '_');
         const url = `https://raw.githubusercontent.com/${this.user}/${this.repo}/${this.branch}/${cleanKey}.txt`;
@@ -30,7 +29,6 @@ class NdjLibrary {
         }
     }
 
-    // NÍVEL 2: Busca na DBpedia (Conhecimento Global)
     async fetchGlobalData(query) {
         const url = `https://lookup.dbpedia.org/api/search?query=${encodeURIComponent(query)}&format=json`;
         try {
@@ -51,45 +49,34 @@ class NdjLibrary {
             if (message.author.bot || !message.content.startsWith('!saber')) return;
 
             const termo = message.content.split(' ').slice(1).join(' ');
-            if (!termo) return message.reply("Digite algo para buscar! Ex: `!saber xadrez`.");
+            if (!termo) return message.reply("Digite algo para buscar!");
 
             try {
-                // TENTA NÍVEL 1: GITHUB
                 const conteudo = await this.getInfo(termo);
 
                 if (conteudo) {
                     const embed = new EmbedBuilder()
                         .setTitle(`📖 Biblioteca: ${termo.toUpperCase()}`)
                         .setDescription(conteudo)
-                        .setColor('#2b2d31')
-                        .setFooter({ text: 'Fonte: Banco de Dados Próprio (GitHub)' });
-
+                        .setColor('#2b2d31');
                     return message.reply({ embeds: [embed] });
                 }
 
-                // TENTA NÍVEL 2: DBPEDIA
                 const fallbackTexto = await this.fetchGlobalData(termo);
-
                 if (fallbackTexto) {
                     const embedGlobal = new EmbedBuilder()
-                        .setTitle(`🌐 Conhecimento Global: ${termo}`)
+                        .setTitle(`🌐 Global: ${termo}`)
                         .setDescription(fallbackTexto.slice(0, 2048))
-                        .setColor('#5865F2')
-                        .setFooter({ text: 'Fonte: DBpedia/Wikipedia' });
-
+                        .setColor('#5865F2');
                     return message.reply({ embeds: [embedGlobal] });
                 }
 
-                message.reply('❌ Não encontrei nada sobre isso em nenhuma das minhas bases.');
-
+                message.reply('❌ Não encontrado.');
             } catch (error) {
-                console.error("Erro na busca:", error);
-                message.reply('⚠️ Erro ao processar a consulta.');
+                console.error(error);
             }
         });
 
         this.client.login(this.token);
     }
 }
-
-module.exports = NdjLibrary;
