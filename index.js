@@ -1,7 +1,7 @@
 const { EasyBot } = require('easy-djs-bot');
 
 const bot = new EasyBot({
-    token: '
+    token: 'process.env.DISCORD_TOKEN'
 });
 
 
