@@ -17,7 +17,7 @@ class NdjLibrary {
         });
     }
 
-    // Método para buscar o TXT no seu GitHub Raw
+    // NÍVEL 1: Busca o TXT no seu GitHub Raw
     async getInfo(tema) {
         const cleanKey = tema.toLowerCase().trim().replace(/\s+/g, '_');
         const url = `https://raw.githubusercontent.com/${this.user}/${this.repo}/${this.branch}/${cleanKey}.txt`;
@@ -30,31 +30,61 @@ class NdjLibrary {
         }
     }
 
-    // Inicia o bot e já configura o comando de busca
+    // NÍVEL 2: Busca na DBpedia (Conhecimento Global)
+    async fetchGlobalData(query) {
+        const url = `https://lookup.dbpedia.org/api/search?query=${encodeURIComponent(query)}&format=json`;
+        try {
+            const res = await fetch(url);
+            const data = await res.json();
+            return data.docs && data.docs.length > 0 ? data.docs[0].comment : null;
+        } catch (e) {
+            return null;
+        }
+    }
+
     iniciar() {
         this.client.on('ready', () => {
             console.log(`✅ Ndj-lib Conectada! Bot: ${this.client.user.tag}`);
-            console.log(`📚 Repositório de Conhecimento: ${this.repo}`);
         });
 
         this.client.on('messageCreate', async (message) => {
             if (message.author.bot || !message.content.startsWith('!saber')) return;
 
             const termo = message.content.split(' ').slice(1).join(' ');
-            if (!termo) return message.reply("O que você deseja saber?");
+            if (!termo) return message.reply("Digite algo para buscar! Ex: `!saber xadrez`.");
 
-            const conteudo = await this.getInfo(termo);
+            try {
+                // TENTA NÍVEL 1: GITHUB
+                const conteudo = await this.getInfo(termo);
 
-            if (conteudo) {
-                const embed = new EmbedBuilder()
-                    .setTitle(`📖 Ndj-Lib | ${termo.toUpperCase()}`)
-                    .setDescription(conteudo)
-                    .setColor('#2b2d31')
-                    .setFooter({ text: `Fonte: github.com/${this.user}/${this.repo}` });
+                if (conteudo) {
+                    const embed = new EmbedBuilder()
+                        .setTitle(`📖 Biblioteca: ${termo.toUpperCase()}`)
+                        .setDescription(conteudo)
+                        .setColor('#2b2d31')
+                        .setFooter({ text: 'Fonte: Banco de Dados Próprio (GitHub)' });
 
-                return message.reply({ embeds: [embed] });
-            } else {
-                return message.reply("❌ Termo não encontrado no banco de dados.");
+                    return message.reply({ embeds: [embed] });
+                }
+
+                // TENTA NÍVEL 2: DBPEDIA
+                const fallbackTexto = await this.fetchGlobalData(termo);
+
+                if (fallbackTexto) {
+                    const embedGlobal = new EmbedBuilder()
+                        .setTitle(`🌐 Conhecimento Global: ${termo}`)
+                        .setDescription(fallbackTexto.slice(0, 2048))
+                        .setColor('#5865F2')
+                        .setFooter({ text: 'Fonte: DBpedia/Wikipedia' });
+
+                    return message.reply({ embeds: [embedGlobal] });
+                }
+
+                message.reply('❌ Não encontrei nada sobre isso em nenhuma das minhas bases.');
+
+            } catch (error) {
+                console.error("Erro na busca:", error);
+                message.reply('⚠️ Erro ao processar a consulta.');
             }
         });
 
@@ -63,53 +93,3 @@ class NdjLibrary {
 }
 
 module.exports = NdjLibrary;
-    } catch (e) { return null; }
-}
-
-client.on('messageCreate', async (message) => {
-    if (message.author.bot || !message.content.startsWith('!saber')) return;
-
-    const args = message.content.split(' ');
-    const query = args.slice(1).join(' ');
-
-    if (!query) return message.reply('Digite algo para buscar! Ex: `!saber xadrez`');
-
-    const cleanKey = query.toLowerCase().trim().replace(/\s+/g, '_');
-    const githubUrl = `https://raw.githubusercontent.com/${GITHUB_CONFIG.user}/${GITHUB_CONFIG.repo}/${GITHUB_CONFIG.branch}/${cleanKey}.txt`;
-
-    try {
-        // TENTA NÍVEL 1: GITHUB (SEU TEXTO PERSONALIZADO)
-        const ghResponse = await fetch(githubUrl);
-
-        if (ghResponse.ok) {
-            const textoPuro = await ghResponse.text();
-            const embed = new EmbedBuilder()
-                .setTitle(`📚 Biblioteca: ${query.toUpperCase()}`)
-                .setDescription(textoPuro)
-                .setColor('#2F3136')
-                .setFooter({ text: 'Fonte: Banco de Dados Próprio (GitHub)' });
-
-            return message.reply({ embeds: [embed] });
-        }
-
-        // TENTA NÍVEL 2: DBPEDIA (CONHECIMENTO AUTOMÁTICO)
-        const fallbackTexto = await fetchGlobalData(query);
-
-        if (fallbackTexto) {
-            const embedGlobal = new EmbedBuilder()
-                .setTitle(`🌐 Conhecimento Global: ${query}`)
-                .setDescription(fallbackTexto.slice(0, 2048)) // Limite de caracteres do Discord
-                .setColor('#5865F2')
-                .setFooter({ text: 'Fonte: DBpedia/Wikipedia' });
-
-            return message.reply({ embeds: [embedGlobal] });
-        }
-
-        message.reply('❌ Não encontrei nada sobre isso em nenhuma das minhas bases.');
-
-    } catch (error) {
-        console.error(error);
-        message.reply('⚠️ Erro ao processar a consulta.');
-    }
-});
-      
